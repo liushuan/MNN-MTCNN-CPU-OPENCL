@@ -57,6 +57,7 @@ static bool CompareBBox(const FaceInfo & a, const FaceInfo & b) {
 	return a.bbox.score > b.bbox.score;
 }
 
+
 static float IoU(float xmin, float ymin, float xmax, float ymax,
 	float xmin_, float ymin_, float xmax_, float ymax_, bool is_iom) {
 	float iw = std::min(xmax, xmax_) - std::max(xmin, xmin_) + 1;
@@ -472,15 +473,28 @@ vector<FaceInfo> FaceDetect::Detect(const cv::Mat& image,  const int min_face,  
 }
 
 
-static void extractMaxFace(vector<FaceInfo>& boundingBox_)
+static std::vector<FaceInfo> extractMaxFace(std::vector<FaceInfo> boundingBox_)
 {
 	if (boundingBox_.empty()) {
-		return;
+		return std::vector<FaceInfo>{};
 	}
+/*
 	sort(boundingBox_.begin(), boundingBox_.end(), CompareBBox);
 	for (std::vector<FaceInfo>::iterator itx = boundingBox_.begin() + 1; itx != boundingBox_.end();) {
 		itx = boundingBox_.erase(itx);
 	}
+*/
+	float max_area = 0;
+	int index = 0;
+	for (int i = 0; i < boundingBox_.size(); ++i){
+ 		FaceBox select_bbox = boundingBox_[i].bbox;
+                float area1 = static_cast<float>((select_bbox.xmax - select_bbox.xmin + 1) * (select_bbox.ymax - select_bbox.ymin + 1));
+		if (area1 > max_area){
+			max_area = area1;
+			index = i;
+		}
+	}
+	return std::vector<FaceInfo>{boundingBox_[index]};	
 }
 
 std::vector<FaceInfo> FaceDetect::Detect_MaxFace(const cv::Mat& img, const int min_face,  const int stage){
@@ -563,7 +577,7 @@ std::vector<FaceInfo> FaceDetect::Detect_MaxFace(const cv::Mat& img, const int m
             rnet_res.clear();
             continue;
         }else{
-            extractMaxFace(onet_res);
+            onet_res =  extractMaxFace(onet_res);
             delete pImg;
             return onet_res;
         }
